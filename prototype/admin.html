@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusHelp - Admin Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>CampusHelp Admin</h1>
+  <nav>
+    <a href="student.html">Student portal</a>
+    <a href="admin.html" class="active">Dashboard</a>
+  </nav>
+</header>
+<main>
+  <div class="sim">Prototype: authentication and data are <b>simulated</b>. Changes are saved in this browser only.</div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" id="count-Open">0</div>Open</div>
+    <div class="stat"><div class="n" id="count-Ongoing">0</div>Ongoing</div>
+    <div class="stat"><div class="n" id="count-Completed">0</div>Completed</div>
+  </div>
+
+  <section class="card">
+    <h2>Requests</h2>
+    <label for="filter">Filter by status</label>
+    <select id="filter">
+      <option value="">All statuses</option>
+      <option>Open</option><option>Ongoing</option><option>Completed</option>
+    </select>
+    <div style="overflow-x:auto;margin-top:12px">
+      <table>
+        <thead><tr><th>Request ID</th><th>Category</th><th>Priority</th><th>Assignee</th><th>Status</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <button type="button" class="secondary" id="reset">Reset demo data</button>
+  </section>
+</main>
+<script src="app.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  function opts(list, cur) { return list.map(o => '<option' + (o === cur ? ' selected' : '') + ' value="' + o + '">' + (o || "Unassigned") + '</option>').join(""); }
+  function render() {
+    const c = CampusHelp.counts();
+    ["Open", "Ongoing", "Completed"].forEach(s => $("count-" + s).textContent = c[s]);
+    const f = $("filter").value;
+    const rows = CampusHelp.all().filter(r => !f || r.status === f);
+    $("rows").innerHTML = rows.map(r =>
+      '<tr data-id="' + r.id + '"><td>' + r.id + '</td><td>' + r.category + '</td><td>' + r.priority + '</td>' +
+      '<td><select class="assignee" aria-label="Assignee for ' + r.id + '">' + opts(CampusHelp.STAFF, r.assignee) + '</select></td>' +
+      '<td><select class="status" aria-label="Status for ' + r.id + '">' + opts(CampusHelp.STATUSES, r.status) + '</select></td></tr>').join("");
+  }
+  document.addEventListener("change", function (e) {
+    const tr = e.target.closest("tr[data-id]");
+    if (!tr) return;
+    if (e.target.classList.contains("assignee")) CampusHelp.update(tr.dataset.id, { assignee: e.target.value });
+    if (e.target.classList.contains("status")) CampusHelp.update(tr.dataset.id, { status: e.target.value });
+    render();
+  });
+  $("filter").onchange = render;
+  $("reset").onclick = function () { CampusHelp.reset(); render(); };
+  render();
+})();
+</script>
+</body>
+</html>
