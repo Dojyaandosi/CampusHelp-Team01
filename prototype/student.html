@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusHelp - Student</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>CampusHelp</h1>
+  <nav>
+    <a href="#submit" id="nav-submit" class="active">Submit request</a>
+    <a href="#track" id="nav-track">Track request</a>
+    <a href="admin.html">Admin dashboard</a>
+  </nav>
+</header>
+<main>
+  <div class="sim">Prototype: login, server and database are <b>simulated</b>. Requests are stored in this browser only.</div>
+
+  <section class="card" id="submit-view">
+    <h2>Submit a service request</h2>
+    <form id="request-form" novalidate>
+      <label for="studentId">Student ID *</label>
+      <input id="studentId" name="studentId" inputmode="numeric" placeholder="e.g. 4248729">
+      <div class="error" id="err-studentId"></div>
+
+      <label for="category">Request category *</label>
+      <select id="category" name="category">
+        <option value="">Select category</option>
+        <option>IT Support</option>
+        <option>Classroom Maintenance</option>
+        <option>Library Assistance</option>
+        <option>Administrative Services</option>
+      </select>
+      <div class="error" id="err-category"></div>
+
+      <label>Priority *</label>
+      <div class="radios" id="priority-group">
+        <label><input type="radio" name="priority" value="Low"> Low</label>
+        <label><input type="radio" name="priority" value="Medium"> Medium</label>
+        <label><input type="radio" name="priority" value="High"> High</label>
+      </div>
+      <div class="error" id="err-priority"></div>
+
+      <label for="description">Description *</label>
+      <textarea id="description" name="description" placeholder="Describe the problem"></textarea>
+      <div class="error" id="err-description"></div>
+
+      <button type="submit" id="submit-btn">Submit request</button>
+    </form>
+  </section>
+
+  <section class="card confirm" id="confirmation" hidden>
+    <h2>Request received</h2>
+    <p>Your Request ID:</p>
+    <p class="id" id="confirm-id"></p>
+    <p>Status: <span class="badge Open" id="confirm-status">Open</span></p>
+    <button type="button" id="track-this" class="secondary">Track this request</button>
+    <button type="button" id="new-request" class="secondary">Submit another</button>
+  </section>
+
+  <section class="card" id="track-view" hidden>
+    <h2>Track a request</h2>
+    <label for="trackId">Request ID</label>
+    <input id="trackId" placeholder="e.g. CH-2026-0001">
+    <button type="button" id="track-btn">Search</button>
+    <div id="track-result" style="margin-top:16px"></div>
+  </section>
+</main>
+<script src="app.js"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const form = $("request-form");
+
+  function show(view) {
+    $("submit-view").hidden = view !== "submit";
+    $("track-view").hidden = view !== "track";
+    $("confirmation").hidden = view !== "confirm";
+    $("nav-submit").classList.toggle("active", view !== "track");
+    $("nav-track").classList.toggle("active", view === "track");
+  }
+  $("nav-submit").onclick = e => { e.preventDefault(); show("submit"); };
+  $("nav-track").onclick = e => { e.preventDefault(); show("track"); };
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const v = {
+      studentId: form.studentId.value.trim(),
+      category: form.category.value,
+      priority: (form.priority.value || ""),
+      description: form.description.value.trim()
+    };
+    const msgs = {
+      studentId: !v.studentId ? "Student ID is required." : (!/^\d{5,10}$/.test(v.studentId) ? "Student ID must be 5-10 digits." : ""),
+      category: !v.category ? "Please select a category." : "",
+      priority: !v.priority ? "Please select a priority." : "",
+      description: !v.description ? "Description is required." : ""
+    };
+    let ok = true;
+    Object.keys(msgs).forEach(k => { $("err-" + k).textContent = msgs[k]; if (msgs[k]) ok = false; });
+    if (!ok) return;
+    const saved = CampusHelp.add(v);
+    $("confirm-id").textContent = saved.id;
+    form.reset();
+    show("confirm");
+  });
+
+  $("track-this").onclick = () => { $("trackId").value = $("confirm-id").textContent; show("track"); $("track-btn").click(); };
+  $("new-request").onclick = () => show("submit");
+
+  $("track-btn").onclick = function () {
+    const r = CampusHelp.find($("trackId").value);
+    const out = $("track-result");
+    if (!r) { out.innerHTML = '<div class="error" id="track-error">No request with this ID.</div>'; return; }
+    out.innerHTML =
+      '<h3 id="result-id">' + r.id + '</h3>' +
+      '<p>Category: <b id="result-category">' + r.category + '</b> &nbsp; Priority: <b id="result-priority">' + r.priority + '</b></p>' +
+      '<p>Status: <span class="badge ' + r.status + '" id="result-status">' + r.status + '</span></p>' +
+      '<p>Assigned to: <b id="result-assignee">' + (r.assignee || "Not assigned yet") + '</b></p>' +
+      '<p class="note">' + r.description.replace(/</g, "&lt;") + '</p>';
+  };
+})();
+</script>
+</body>
+</html>
